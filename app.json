@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Smart Combo",
+    "slug": "smart-combo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0a0a",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ng.com.smartcombo.app"
+    },
+    "android": {
+      "package": "ng.com.smartcombo.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#e9b20f",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#0a0a0a"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "23f4fecb-0e26-43d5-b41b-f76cfea5ead7"
+      }
+    },
+    "owner": "smartcombo"
+  }
+}
