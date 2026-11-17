@@ -138,7 +138,7 @@ export default function App() {
         )}
         {!overlayGone && !failed && (
           <Animated.View style={[styles.loader, { opacity: fade }]} pointerEvents={loaded ? 'none' : 'auto'} onLayout={hideSplash}>
-            <Image source={require('./assets/splash-icon.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('./assets/logo-mark.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.brand}>Smart Combo</Text>
             <Text style={styles.tag}>{slow ? 'Getting things ready... the first start can take a few seconds.' : 'Gadgets, combos and bill payments'}</Text>
             <View style={styles.track}>
