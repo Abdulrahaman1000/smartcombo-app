@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import { useVideoPlayer, VideoView } from 'expo-video'; // SC-BGVIDEO
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 import { APP_USER_AGENT, BACKGROUND, GOLD, SITE_URL } from './config';
 
@@ -13,6 +14,17 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 const SITE_HOST = new URL(SITE_URL).host;
 // Links that should leave the app: WhatsApp chats open the WhatsApp app.
 const EXTERNAL_HOSTS = ['wa.me', 'api.whatsapp.com', 'chat.whatsapp.com'];
+
+// SC-BGVIDEO: muted looping video behind the loading screen, dimmed so the text stays easy to read.
+function LoaderBackground() {
+  const player = useVideoPlayer(require('./assets/splash-bg.mp4'), (p) => { p.loop = true; p.muted = true; p.play(); });
+  return (
+    <>
+      <VideoView player={player} style={styles.bgVideo} contentFit="cover" nativeControls={false} fullscreenOptions={{ enable: false }} allowsPictureInPicture={false} pointerEvents="none" />
+      <View style={styles.bgDim} pointerEvents="none" />
+    </>
+  );
+}
 
 export default function App() {
   const webRef = useRef<WebView<object>>(null);
@@ -138,6 +150,7 @@ export default function App() {
         )}
         {!overlayGone && !failed && (
           <Animated.View style={[styles.loader, { opacity: fade }]} pointerEvents={loaded ? 'none' : 'auto'} onLayout={hideSplash}>
+            <LoaderBackground />
             <Image source={require('./assets/logo-mark.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.brand}>Smart Combo</Text>
             <Text style={styles.tag}>{slow ? 'Getting things ready... the first start can take a few seconds.' : 'Gadgets, combos and bill payments'}</Text>
@@ -154,6 +167,8 @@ export default function App() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: BACKGROUND },
   web: { flex: 1, backgroundColor: BACKGROUND },
+  bgVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  bgDim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10,10,10,0.35)' },
   loader: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: BACKGROUND, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36 },
   logo: { width: 120, height: 120, marginBottom: 18 },
   brand: { color: '#ffffff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
