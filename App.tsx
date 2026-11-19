@@ -32,6 +32,10 @@ export default function App() {
   const splashHidden = useRef(false);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const retries = useRef(0); // SC-RETRY
+  const failing = useRef(false);
+  const [failNote, setFailNote] = useState('');
+  const [offlineKind, setOfflineKind] = useState(true);
 
   const [loaded, setLoaded] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -97,7 +101,37 @@ export default function App() {
     return true;
   }, []);
 
+  // SC-RETRY: a sleeping or briefly busy server often answers on the next try, so try again quietly before showing the retry screen.
+  const handleFail = (offline: boolean, note: string) => {
+    if (failing.current) return;
+    failing.current = true;
+    const max = offline ? 2 : 8;
+    if (retries.current < max) {
+      retries.current += 1;
+      setSlow(true);
+      setTimeout(() => {
+        failing.current = false;
+        progress.setValue(0.05);
+        setAttempt((n) => n + 1);
+      }, offline ? 2000 : 2500 + retries.current * 500);
+      return;
+    }
+    setOfflineKind(offline);
+    setFailNote(note);
+    setFailed(true);
+    finishLoading();
+  };
+
+  // If the shop gives no answer at all for 40 seconds, treat it as a failed try.
+  useEffect(() => {
+    if (loaded || failed) return;
+    const t = setTimeout(() => handleFail(false, 'No answer from the shop'), 40000);
+    return () => clearTimeout(t);
+  }, [attempt, loaded, failed]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const retry = () => {
+    retries.current = 0;
+    failing.current = false;
     setFailed(false);
     setLoaded(false);
     setSlow(false);
@@ -113,8 +147,9 @@ export default function App() {
         <StatusBar style="light" />
         {failed ? (
           <View style={styles.offline}>
-            <Text style={styles.title}>No internet connection</Text>
-            <Text style={styles.text}>Check your data or Wi-Fi, then try again. Your orders and wallet are safe.</Text>
+            <Text style={styles.title}>{offlineKind ? 'No internet connection' : 'Smart Combo is not answering'}</Text>
+            <Text style={styles.text}>{offlineKind ? 'Check your data or Wi-Fi, then try again. Your orders and wallet are safe.' : 'Your internet looks fine, but the shop did not answer in time. Please try again in a moment. Your orders and wallet are safe.'}</Text>
+            {failNote ? <Text style={styles.detail}>{failNote}</Text> : null}
             <Pressable style={styles.button} onPress={retry} accessibilityRole="button" accessibilityLabel="Try again">
               <Text style={styles.buttonText}>Try again</Text>
             </Pressable>
@@ -139,11 +174,11 @@ export default function App() {
             onNavigationStateChange={(s) => { canGoBack.current = s.canGoBack; }}
             onShouldStartLoadWithRequest={onShouldStart}
             onLoadProgress={(e) => setProgress(e.nativeEvent.progress)}
-            onLoadEnd={finishLoading}
-            onError={() => { setFailed(true); finishLoading(); }}
+            onLoadEnd={() => { setTimeout(() => { if (!failing.current) { retries.current = 0; finishLoading(); } }, 300); }}
+            onError={(e) => { const d = String(e.nativeEvent.description || ''); handleFail(/INTERNET_DISCONNECTED|NAME_NOT_RESOLVED/i.test(d), d); }}
             onHttpError={(e) => {
               // The shop itself not answering (server error) shows the same retry screen.
-              if (e.nativeEvent.statusCode >= 500 && e.nativeEvent.url.replace(/\/$/, '').endsWith(SITE_HOST)) setFailed(true);
+              if (e.nativeEvent.statusCode >= 500 && e.nativeEvent.url.replace(/\/$/, '').endsWith(SITE_HOST)) handleFail(false, 'Server answered with error ' + e.nativeEvent.statusCode);
             }}
             originWhitelist={['*']}
           />
@@ -175,6 +210,7 @@ const styles = StyleSheet.create({
   tag: { color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 8, minHeight: 40 },
   track: { width: 140, height: 4, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.14)', overflow: 'hidden', marginTop: 20 },
   bar: { height: 4, borderRadius: 4, backgroundColor: GOLD },
+  detail: { color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center' },
   offline: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36, gap: 14 },
   title: { color: '#ffffff', fontSize: 22, fontWeight: '900', textAlign: 'center' },
   text: { color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 21, textAlign: 'center' },
